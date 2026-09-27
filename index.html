@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+<title>Masha School Run 🌸</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    touch-action:none;
+    font-family:Arial,sans-serif;
+    background:#9edcff;
+}
+
+canvas{
+    display:block;
+    width:100vw;
+    height:100vh;
+}
+
+#menu,#over{
+    position:fixed;
+    inset:0;
+    z-index:20;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+
+    background:
+        linear-gradient(
+            #8edcff,
+            #dff7ff 55%,
+            #b7e89b
+        );
+}
+
+#over{
+    display:none;
+    z-index:30;
+    background:#ffffffee;
+}
+
+.logo{
+    font-size:42px;
+    font-weight:900;
+    color:#ff4e9b;
+
+    text-shadow:
+        0 3px 0 white,
+        0 0 15px #ff70b5,
+        0 0 35px #ffb0d2;
+
+    margin-bottom:12px;
+}
+
+.sub{
+    color:#59384b;
+    font-size:17px;
+    line-height:1.7;
+    margin:0 25px 28px;
+}
+
+button{
+    border:none;
+    border-radius:50px;
+    padding:16px 48px;
+    color:white;
+    font-size:20px;
+    font-weight:bold;
+    background:linear-gradient(
+        90deg,
+        #ff5da8,
+        #ff87bf
+    );
+
+    box-shadow:0 8px 25px #ff5da855;
+}
+
+button:active{
+    transform:scale(.94);
+}
+
+#hud{
+    position:fixed;
+    top:12px;
+    left:12px;
+    right:12px;
+    z-index:10;
+
+    display:none;
+    justify-content:space-between;
+    gap:7px;
+}
+
+.box{
+    padding:9px 13px;
+    background:#ffffffdd;
+    border:2px solid #ff9bc6;
+    border-radius:15px;
+    color:#71324f;
+    font-weight:bold;
+    box-shadow:0 4px 15px #8a547533;
+}
+
+#over h2{
+    font-size:42px;
+    color:#ff559f;
+    margin-bottom:15px;
+}
+
+#final{
+    color:#633b52;
+    font-size:22px;
+    line-height:1.8;
+    margin-bottom:20px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ================= MENU ================= -->
+
+<div id="menu">
+
+    <div class="logo">
+        🌸 MASHA SCHOOL RUN 🌸
+    </div>
+
+    <div class="sub">
+        🏫 Maktab koridoridan yugur!<br>
+        🌷 Pushti gullardan qoch!<br>
+        🍫 Kinderlarni yig‘ib ochko ol!
+    </div>
+
+    <button onclick="startGame()">
+        BOSHLASH ▶
+    </button>
+
+</div>
+
+
+<!-- ================= HUD ================= -->
+
+<div id="hud">
+
+    <div class="box">
+        🏆 <span id="score">0</span>
+    </div>
+
+    <div class="box">
+        🍫 <span id="kinder">0</span>
+    </div>
+
+    <div class="box">
+        🔥 LVL <span id="level">1</span>
+    </div>
+
+</div>
+
+
+<!-- ================= GAME OVER ================= -->
+
+<div id="over">
+
+    <h2>🌸 O‘YIN TUGADI</h2>
+
+    <div id="final"></div>
+
+    <button onclick="startGame()">
+        QAYTA O‘YNASH 🔄
+    </button>
+
+</div>
+
+
+<canvas id="game"></canvas>
+
+
+<script>
+
+/* =====================================================
+                     CANVAS
+===================================================== */
+
+const canvas =
+    document.getElementById("game");
+
+const ctx =
+    canvas.getContext("2d");
+
+let W,H;
+
+function resize(){
+
+    W=innerWidth;
+    H=innerHeight;
+
+    const d=devicePixelRatio || 1;
+
+    canvas.width=W*d;
+    canvas.height=H*d;
+
+    ctx.setTransform(d,0,0,d,0,0);
+}
+
+resize();
+
+addEventListener("resize",resize);
+
+
+/* =====================================================
+                     O‘YIN
+===================================================== */
+
+let playing=false;
+
+let score=0;
+
+let kinder=0;
+
+let speed=5;
+
+let distance=0;
+
+let lastTime=0;
+
+let flowerTimer=0;
+
+let kinderTimer=0;
+
+let flowers=[];
+
+let kinders=[];
+
+let particles=[];
+
+
+/* =====================================================
+                     MASHA
+===================================================== */
+
+const player={
+
+    x:80,
+
+    y:0,
+
+    w:50,
+
+    h:72,
+
+    vy:0,
+
+    grounded:false
+};
+
+
+function floor(){
+
+    return H-115;
+}
+
+
+/* =====================================================
+                     START
+===================================================== */
+
+function startGame(){
+
+    document.getElementById("menu").style.display="none";
+
+    document.getElementById("over").style.display="none";
+
+    document.getElementById("hud").style.display="flex";
+
+    score=0;
+
+    kinder=0;
+
+    speed=5;
+
+    distance=0;
+
+    flowerTimer=0;
+
+    kinderTimer=0;
+
+    flowers=[];
+
+    kinders=[];
+
+    particles=[];
+
+    player.x=80;
+
+    player.y=floor()-player.h;
+
+    player.vy=0;
+
+    playing=true;
+
+    updateHUD();
+
+    lastTime=performance.now();
+
+    requestAnimationFrame(loop);
+}
+
+
+/* =====================================================
+                     SAKRASH
+===================================================== */
+
+function jump(){
+
+    if(!playing)return;
+
+    if(player.grounded){
+
+        player.vy=-15;
+
+        player.grounded=false;
+
+        /* Yengil sakrash effekti */
+
+        for(let i=0;i<4;i++){
+
+            particles.push({
+
+                x:player.x+25,
+
+                y:player.y+70,
+
+                vx:(Math.random()-.5)*3,
+
+                vy:-Math.random()*2,
+
+                life:.5
+            });
+        }
+    }
+}
+
+
+/* TELEFON */
+
+addEventListener(
+    "touchstart",
+    e=>{
+
+        e.preventDefault();
+
+        jump();
+
+    },
+    {passive:false}
+);
+
+
+/* KOMPYUTER */
+
+addEventListener(
+    "keydown",
+    e=>{
+
+        if(
+            e.code==="Space" ||
+            e.code==="ArrowUp"
+        ){
+
+            jump();
+        }
+    }
+);
+
+
+/* =====================================================
+                  PUSHTI GUL
+===================================================== */
+
+function createFlower(){
+
+    const size=
+        35+Math.random()*25;
+
+    flowers.push({
+
+        x:W+60,
+
+        y:floor()-size+5,
+
+        w:size,
+
+        h:size,
+
+        rot:0
+    });
+}
+
+
+/* =====================================================
+                     KINDER
+===================================================== */
+
+function createKinder(){
+
+    kinders.push({
+
+        x:W+60,
+
+        y:
+            floor()-
+            120-
+            Math.random()*140,
+
+        w:32,
+
+        h:45,
+
+        rot:0
+    });
+}
+
+
+/* =====================================================
+                    COLLISION
+===================================================== */
+
+function collision(a,b){
+
+    return(
+        a.x<b.x+b.w &&
+        a.x+a.w>b.x &&
+        a.y<b.y+b.h &&
+        a.y+a.h>b.y
+    );
+}
+
+
+/* =====================================================
+                     HUD
+===================================================== */
+
+function updateHUD(){
+
+    document.getElementById("score").innerText=
+        Math.floor(score);
+
+    document.getElementById("kinder").innerText=
+        kinder;
+
+    document.getElementById("level").innerText=
+        Math.max(1,Math.floor(speed/5));
+}
+
+
+/* =====================================================
+                   OSMON
+===================================================== */
+
+function drawSky(){
+
+    const g=
+        ctx.createLinearGradient(
+            0,0,0,H
+        );
+
+    g.addColorStop(0,"#65c9ff");
+
+    g.addColorStop(.55,"#d9f5ff");
+
+    g.addColorStop(1,"#c9ecad");
+
+    ctx.fillStyle=g;
+
+    ctx.fillRect(0,0,W,H);
+
+
+    /* QUYOSH */
+
+    ctx.shadowBlur=30;
+
+    ctx.shadowColor="#ffe68a";
+
+    ctx.fillStyle="#fff0a8";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        W-80,
+        100,
+        35,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+
+
+    /* BULUT */
+
+    for(let i=0;i<8;i++){
+
+        let x=
+            (i*230-distance*.08)
+            %(W+250);
+
+        if(x<-100)
+            x+=W+250;
+
+        let y=
+            70+(i%3)*45;
+
+        ctx.fillStyle="#ffffffdd";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            x,
+            y,
+            28,
+            0,
+            Math.PI*2
+        );
+
+        ctx.arc(
+            x+30,
+            y-12,
+            35,
+            0,
+            Math.PI*2
+        );
+
+        ctx.arc(
+            x+65,
+            y,
+            28,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    }
+
+
+    /* TOG‘LAR */
+
+    ctx.fillStyle="#78ad79";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        floor()-40
+    );
+
+    for(
+        let x=0;
+        x<W+200;
+        x+=130
+    ){
+
+        let xx=
+            x-(distance*.25%130);
+
+        ctx.lineTo(
+            xx,
+            floor()-130-(x%100)
+        );
+
+        ctx.lineTo(
+            xx+65,
+            floor()-40
+        );
+    }
+
+    ctx.lineTo(W,floor());
+
+    ctx.lineTo(0,floor());
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* UZOQ TOG‘ */
+
+    ctx.fillStyle="#a6c99b";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        0,
+        floor()-20
+    );
+
+    for(
+        let x=0;
+        x<W+300;
+        x+=180
+    ){
+
+        let xx=
+            x-(distance*.12%180);
+
+        ctx.lineTo(
+            xx,
+            floor()-190
+        );
+
+        ctx.lineTo(
+            xx+90,
+            floor()-20
+        );
+    }
+
+    ctx.lineTo(W,floor());
+
+    ctx.lineTo(0,floor());
+
+    ctx.closePath();
+
+    ctx.fill();
+}
+
+
+/* =====================================================
+                 MAKTAB KORIDORI
+===================================================== */
+
+function drawSchoolHall(){
+
+    /* POL */
+
+    ctx.fillStyle="#d9c3a8";
+
+    ctx.fillRect(
+        0,
+        floor(),
+        W,
+        H-floor()
+    );
+
+
+    /* POL CHIZIQLARI */
+
+    ctx.strokeStyle="#a98e75";
+
+    ctx.lineWidth=2;
+
+    for(
+        let x=-100;
+        x<W+100;
+        x+=100
+    ){
+
+        let xx=
+            x-(distance%100);
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            xx,
+            floor()
+        );
+
+        ctx.lineTo(
+            xx-40,
+            H
+        );
+
+        ctx.stroke();
+    }
+
+
+    /* DEVOR */
+
+    ctx.fillStyle="#f8eee5";
+
+    ctx.fillRect(
+        0,
+        floor()-150,
+        W,
+        150
+    );
+
+
+    /* ESHIKLAR */
+
+    for(
+        let x=-100;
+        x<W+200;
+        x+=130
+    ){
+
+        let xx=
+            x-(distance*.6%130);
+
+        ctx.fillStyle="#9d6b4d";
+
+        ctx.fillRect(
+            xx,
+            floor()-125,
+            75,
+            110
+        );
+
+        ctx.fillStyle="#d8a77d";
+
+        ctx.fillRect(
+            xx+8,
+            floor()-115,
+            59,
+            92
+        );
+
+        /* Oyna */
+
+        ctx.fillStyle="#9bd9f2";
+
+        ctx.fillRect(
+            xx+17,
+            floor()-103,
+            41,
+            35
+        );
+
+        /* Tutqich */
+
+        ctx.fillStyle="#ffe08a";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            xx+58,
+            floor()-60,
+            4,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    }
+
+
+    /* RAMKALAR */
+
+    for(
+        let x=-50;
+        x<W+100;
+        x+=180
+    ){
+
+        let xx=
+            x-(distance*.4%180);
+
+        ctx.fillStyle="#ffb7d5";
+
+        ctx.fillRect(
+            xx,
+            floor()-145,
+            80,
+            55
+        );
+
+        ctx.fillStyle="#fff";
+
+        ctx.fillRect(
+            xx+5,
+            floor()-140,
+            70,
+            45
+        );
+
+        ctx.fillStyle="#ff8ebd";
+
+        ctx.font="bold 18px Arial";
+
+        ctx.fillText(
+            "🌸",
+            xx+30,
+            floor()-112
+        );
+    }
+
+
+    /* KORIDOR CHIZIG‘I */
+
+    ctx.fillStyle="#fff4ea";
+
+    ctx.fillRect(
+        0,
+        floor()+20,
+        W,
+        5
+    );
+}
+
+
+/* =====================================================
+                     MASHA
+===================================================== */
+
+function drawMasha(){
+
+    const x=player.x;
+
+    const y=player.y;
+
+    ctx.save();
+
+    ctx.shadowBlur=15;
+
+    ctx.shadowColor="#ff65ae";
+
+
+    /* OYOQ */
+
+    ctx.strokeStyle="#eeb48e";
+
+    ctx.lineWidth=7;
+
+    ctx.lineCap="round";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+17,
+        y+57
+    );
+
+    ctx.lineTo(
+        x+10,
+        y+70
+    );
+
+    ctx.moveTo(
+        x+34,
+        y+57
+    );
+
+    ctx.lineTo(
+        x+42,
+        y+70
+    );
+
+    ctx.stroke();
+
+
+    /* KO‘YLAK */
+
+    ctx.fillStyle="#ff70b5";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+13,
+        y+32
+    );
+
+    ctx.lineTo(
+        x+38,
+        y+32
+    );
+
+    ctx.lineTo(
+        x+47,
+        y+60
+    );
+
+    ctx.lineTo(
+        x+4,
+        y+60
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* BO‘YIN */
+
+    ctx.fillStyle="#f2bb92";
+
+    ctx.fillRect(
+        x+21,
+        y+25,
+        10,
+        10
+    );
+
+
+    /* SOCH */
+
+    ctx.fillStyle="#71391f";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+26,
+        y+16,
+        21,
+        Math.PI,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* YUZ */
+
+    ctx.fillStyle="#f5c39b";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+26,
+        y+20,
+        16,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* RO‘MOL */
+
+    ctx.fillStyle="#ef4d96";
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+5,
+        y+12
+    );
+
+    ctx.quadraticCurveTo(
+        x+26,
+        y-10,
+        x+47,
+        y+12
+    );
+
+    ctx.lineTo(
+        x+43,
+        y+21
+    );
+
+    ctx.quadraticCurveTo(
+        x+26,
+        y+10,
+        x+9,
+        y+21
+    );
+
+    ctx.closePath();
+
+    ctx.fill();
+
+
+    /* KO‘Z */
+
+    ctx.fillStyle="#241421";
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+20,
+        y+20,
+        2.5,
+        0,
+        Math.PI*2
+    );
+
+    ctx.arc(
+        x+32,
+        y+20,
+        2.5,
+        0,
+        Math.PI*2
+    );
+
+    ctx.fill();
+
+
+    /* TABASSUM */
+
+    ctx.strokeStyle="#8b3053";
+
+    ctx.lineWidth=2;
+
+    ctx.beginPath();
+
+    ctx.arc(
+        x+26,
+        y+22,
+        5,
+        0,
+        Math.PI
+    );
+
+    ctx.stroke();
+
+
+    /* QO‘LLAR */
+
+    ctx.strokeStyle="#f5c39b";
+
+    ctx.lineWidth=6;
+
+    ctx.beginPath();
+
+    ctx.moveTo(
+        x+9,
+        y+40
+    );
+
+    ctx.lineTo(
+        x,
+        y+49
+    );
+
+    ctx.moveTo(
+        x+43,
+        y+40
+    );
+
+    ctx.lineTo(
+        x+52,
+        y+49
+    );
+
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+
+/* =====================================================
+                   PUSHTI GULLAR
+===================================================== */
+
+function drawFlowers(){
+
+    flowers.forEach(f=>{
+
+        ctx.save();
+
+        ctx.translate(
+            f.x+f.w/2,
+            f.y+f.h/2
+        );
+
+        ctx.rotate(f.rot);
+
+
+        /* POYA */
+
+        ctx.strokeStyle="#3c9b55";
+
+        ctx.lineWidth=5;
+
+        ctx.beginPath();
+
+        ctx.moveTo(0,5);
+
+        ctx.lineTo(0,30);
+
+        ctx.stroke();
+
+
+        /* BARG */
+
+        ctx.fillStyle="#53ad5b";
+
+        ctx.beginPath();
+
+        ctx.ellipse(
+            -8,
+            18,
+            9,
+            4,
+            -.4,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+
+        /* GUL */
+
+        for(let i=0;i<6;i++){
+
+            const a=i*Math.PI/3;
+
+            ctx.fillStyle="#ff76b6";
+
+            ctx.beginPath();
+
+            ctx.arc(
+                Math.cos(a)*14,
+                Math.sin(a)*14,
+                10,
+                0,
+                Math.PI*2
+            );
+
+            ctx.fill();
+        }
+
+
+        /* MARKAZ */
+
+        ctx.fillStyle="#ffe36e";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            7,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+
+        ctx.restore();
+    });
+}
+
+
+/* =====================================================
+                     KINDER
+===================================================== */
+
+function drawKinder(){
+
+    kinders.forEach(k=>{
+
+        ctx.save();
+
+        ctx.translate(
+            k.x+k.w/2,
+            k.y+k.h/2
+        );
+
+        ctx.rotate(
+            Math.sin(k.rot)*.1
+        );
+
+        /* QUTI */
+
+        ctx.shadowBlur=12;
+
+        ctx.shadowColor="#ffd000";
+
+        ctx.fillStyle="#fff";
+
+        ctx.fillRect(
+            -16,
+            -22,
+            32,
+            45
+        );
+
+
+        /* QIZIL */
+
+        ctx.fillStyle="#e92828";
+
+        ctx.fillRect(
+            -16,
+            -22,
+            32,
+            15
+        );
+
+
+        /* Yozuv */
+
+        ctx.fillStyle="#e73535";
+
+        ctx.font="bold 8px Arial";
+
+        ctx.textAlign="center";
+
+        ctx.fillText(
+            "kinder",
+            0,
+            3
+        );
+
+
+        /* Yaltirash */
+
+        ctx.fillStyle="#fff";
+
+        ctx.fillRect(
+            -12,
+            -18,
+            24,
+            3
+        );
+
+        ctx.restore();
+    });
+}
+
+
+/* =====================================================
+                    PARTICLE
+===================================================== */
+
+function drawParticles(){
+
+    particles.forEach(p=>{
+
+        ctx.globalAlpha=p.life;
+
+        ctx.fillStyle="#ff76b6";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            p.x,
+            p.y,
+            3,
+            0,
+            Math.PI*2
+        );
+
+        ctx.fill();
+    });
+
+    ctx.globalAlpha=1;
+}
+
+
+/* =====================================================
+                     LOOP
+===================================================== */
+
+function loop(now){
+
+    if(!playing)return;
+
+
+    const dt=
+        (now-lastTime)/16.67;
+
+    lastTime=now;
+
+
+    distance+=speed*dt;
+
+    score+=speed*.035*dt;
+
+    /* TEZLIK */
+
+    speed+=.0015*dt;
+
+
+    /* ================= GUL ================= */
+
+    flowerTimer+=dt;
+
+    if(
+        flowerTimer>
+        Math.max(
+            45,
+            80-speed*2
+        )
+    ){
+
+        createFlower();
+
+        flowerTimer=0;
+    }
+
+
+    /* ================= KINDER ================= */
+
+    kinderTimer+=dt;
+
+    if(kinderTimer>55){
+
+        createKinder();
+
+        kinderTimer=0;
+    }
+
+
+    /* ================= FIZIKA ================= */
+
+    player.vy+=.75*dt;
+
+    player.y+=player.vy*dt;
+
+
+    if(
+        player.y+
+        player.h>=
+        floor()
+    ){
+
+        player.y=
+            floor()-
+            player.h;
+
+        player.vy=0;
+
+        player.grounded=true;
+
+    }else{
+
+        player.grounded=false;
+    }
+
+
+    /* ================= GULLAR ================= */
+
+    flowers.forEach(f=>{
+
+        f.x-=speed*dt;
+
+        f.rot+=.02*dt;
+
+        if(
+            collision(
+                player,
+                f
+            )
+        ){
+
+            gameOver();
+        }
+    });
+
+
+    flowers=
+        flowers.filter(
+            f=>f.x>-100
+        );
+
+
+    /* ================= KINDER ================= */
+
+    kinders.forEach(k=>{
+
+        k.x-=speed*dt;
+
+        k.rot+=.06*dt;
+
+
+        const dx=
+            player.x+
+            25-
+            k.x;
+
+
+        const dy=
+            player.y+
+            35-
+            k.y;
+
+
+        const d=
+            Math.sqrt(
+                dx*dx+
+                dy*dy
+            );
+
+
+        if(d<45){
+
+            /* OCHKO */
+
+            kinder++;
+
+            score+=100;
+
+
+            /*
+              YENGIL EFFEKT.
+              Bu yerda explode() yo‘q,
+              shuning uchun o‘yin qotmaydi.
+            */
+
+            for(let i=0;i<5;i++){
+
+                particles.push({
+
+                    x:k.x,
+
+                    y:k.y,
+
+                    vx:(Math.random()-.5)*3,
+
+                    vy:-Math.random()*3,
+
+                    life:.5
+                });
+            }
+
+
+            /* KINDERNI O‘CHIRISH */
+
+            k.x=-500;
+        }
+    });
+
+
+    kinders=
+        kinders.filter(
+            k=>k.x>-100
+        );
+
+
+    /* ================= PARTICLE ================= */
+
+    particles.forEach(p=>{
+
+        p.x+=p.vx*dt;
+
+        p.y+=p.vy*dt;
+
+        p.vy+=.2*dt;
+
+        p.life-=.025*dt;
+    });
+
+
+    particles=
+        particles.filter(
+            p=>p.life>0
+        );
+
+
+    /* ================= CHIZISH ================= */
+
+    drawSky();
+
+    drawSchoolHall();
+
+    drawFlowers();
+
+    drawKinder();
+
+    drawParticles();
+
+    drawMasha();
+
+    updateHUD();
+
+
+    requestAnimationFrame(loop);
+}
+
+
+/* =====================================================
+                  GAME OVER
+===================================================== */
+
+function gameOver(){
+
+    if(!playing)return;
+
+    playing=false;
+
+
+    const best=
+        Number(
+            localStorage.getItem(
+                "mashaSchoolBest"
+            )||0
+        );
+
+
+    const current=
+        Math.floor(score);
+
+
+    if(current>best){
+
+        localStorage.setItem(
+            "mashaSchoolBest",
+            current
+        );
+    }
+
+
+    document.getElementById("final").innerHTML=
+
+        "🏆 Ochko: "+
+        current+
+
+        "<br>🍫 Kinder: "+
+        kinder+
+
+        "<br>⭐ Rekord: "+
+        Math.max(
+            current,
+            best
+        );
+
+
+    document.getElementById("over").style.display="flex";
+}
+
+</script>
+
+</body>
+</html>
